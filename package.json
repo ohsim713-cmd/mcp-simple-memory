@@ -1,0 +1,48 @@
+{
+  "name": "mcp-simple-memory",
+  "version": "0.1.0",
+  "description": "Simple persistent memory for Claude Code. ~500 lines, SQLite, optional semantic search. Zero native deps.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "mcp-simple-memory": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "claude-code",
+    "memory",
+    "sqlite",
+    "persistent-memory",
+    "model-context-protocol",
+    "ai-tools"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "sql.js": "^1.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/sql.js": "^1.4.9",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ohsim713-cmd/mcp-simple-memory"
+  }
+}
