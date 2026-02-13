@@ -1,18 +1,22 @@
 # mcp-simple-memory
 
-Persistent memory for Claude Code. **One file, zero external databases.**
+[![npm version](https://img.shields.io/npm/v/mcp-simple-memory.svg)](https://www.npmjs.com/package/mcp-simple-memory)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
 
-Claude Code forgets everything between sessions. This MCP server gives it a local SQLite memory that persists forever.
+**Persistent memory for Claude Code. One command setup. Zero external databases.**
 
-## Why This Exists
+Claude Code forgets everything between sessions. This MCP server gives it a local SQLite memory that persists across sessions - with optional semantic search powered by Gemini embeddings.
 
-| | claude-mem | mcp-simple-memory |
-|---|-----------|-------------------|
-| Codebase | ~20,000 lines | ~600 lines |
-| External DB | ChromaDB + Python | None (SQLite built-in) |
-| Windows | Broken (as of v10) | Works |
-| Setup | Complex | 1 command |
-| Search | Vector only | Keyword + optional vector |
+## Features
+
+- **Zero external dependencies** - SQLite via WASM (sql.js). No Python, no Docker, no ChromaDB
+- **Cross-platform** - Works on Windows, macOS, and Linux
+- **One command setup** - `npx mcp-simple-memory init` and restart Claude Code
+- **Keyword + semantic search** - Auto-switches between SQLite LIKE queries and Gemini vector search
+- **Tags & projects** - Organize memories by project, type, and custom tags
+- **Markdown import** - Bulk import existing docs, notes, or session logs
+- **~600 lines** - Small, auditable codebase. No magic
 
 ## Quick Start
 
@@ -20,13 +24,12 @@ Claude Code forgets everything between sessions. This MCP server gives it a loca
 npx mcp-simple-memory init
 ```
 
-Restart Claude Code. Done. You now have 7 tools: `mem_save`, `mem_search`, `mem_get`, `mem_list`, `mem_update`, `mem_delete`, `mem_tags`.
+Restart Claude Code. You now have 7 tools: `mem_save`, `mem_search`, `mem_get`, `mem_list`, `mem_update`, `mem_delete`, `mem_tags`.
 
-## Optional: Semantic Search
+### Add Semantic Search (Optional)
 
-Add a free [Gemini API key](https://aistudio.google.com/apikey) for meaning-based search:
+Get a free [Gemini API key](https://aistudio.google.com/apikey) (1500 requests/day free tier), then edit `.mcp.json`:
 
-Edit `.mcp.json`:
 ```json
 {
   "mcpServers": {
@@ -41,31 +44,45 @@ Edit `.mcp.json`:
 }
 ```
 
-Without a key, keyword search is used. With a key, vector search kicks in automatically when keyword results are sparse.
+Without a key, keyword search works fine. With a key, vector search kicks in automatically when keyword results are sparse.
 
-## Tools
+## Use Cases
+
+**Session memory** - Save summaries at the end of each session, pick up where you left off next time:
+```
+mem_save({ text: "Migrated auth from JWT to OAuth2. Tests passing.", type: "session_summary", project: "my-app" })
+```
+
+**Technical decisions** - Remember why you chose X over Y:
+```
+mem_save({ text: "Chose Postgres over MongoDB because we need transactions for payment flow", type: "decision", tags: ["database", "payments"] })
+```
+
+**Error solutions** - Never debug the same issue twice:
+```
+mem_save({ text: "CORS error on /api/upload fixed by adding credentials: 'include'", type: "error", tags: ["cors", "api"] })
+```
+
+**Cross-session search** - Find anything from previous sessions:
+```
+mem_search({ query: "authentication", tag: "api" })
+```
+
+## Tools Reference
 
 ### `mem_save`
 Save a memory with optional tags.
 
-```
-mem_save({ text: "OAuth2 tokens expire in 1 hour", tags: ["auth", "api"] })
-```
-
 | Param | Required | Description |
 |-------|----------|-------------|
 | text | Yes | Content to save |
-| title | No | Short title (auto-generated) |
+| title | No | Short title (auto-generated if omitted) |
 | project | No | Project name (default: "default") |
 | type | No | memory, decision, error, session_summary, todo, snippet |
 | tags | No | Array of tags for categorization |
 
 ### `mem_search`
 Search by keyword, meaning, tag, or type.
-
-```
-mem_search({ query: "authentication", tag: "api" })
-```
 
 | Param | Required | Description |
 |-------|----------|-------------|
@@ -94,11 +111,7 @@ List recent memories with optional filters.
 | tag | No | Filter by tag |
 
 ### `mem_update`
-Update an existing memory's content, title, type, project, or tags.
-
-```
-mem_update({ id: 42, text: "Updated content", tags: ["new-tag"] })
-```
+Update an existing memory.
 
 | Param | Required | Description |
 |-------|----------|-------------|
@@ -112,20 +125,12 @@ mem_update({ id: 42, text: "Updated content", tags: ["new-tag"] })
 ### `mem_delete`
 Delete memories by IDs. Also removes embeddings and tags.
 
-```
-mem_delete({ ids: [1, 2, 3] })
-```
-
 | Param | Required | Description |
 |-------|----------|-------------|
 | ids | Yes | Array of memory IDs to delete |
 
 ### `mem_tags`
 List all tags with usage counts.
-
-```
-mem_tags({ project: "my-app" })
-```
 
 | Param | Required | Description |
 |-------|----------|-------------|
@@ -134,42 +139,40 @@ mem_tags({ project: "my-app" })
 ## How It Works
 
 ```
-mem_save({ text: "Fixed auth bug with OAuth2", tags: ["bug", "auth"] })
+mem_save({ text: "Fixed auth bug", tags: ["bug"] })
     |
     v
 SQLite (keyword index + optional Gemini embedding + tags)
     |
     v
-mem_search({ query: "authentication problem", tag: "bug" })
-    -> Finds it via keyword match OR vector similarity, filtered by tag
+mem_search({ query: "authentication problem" })
+    -> keyword match OR vector similarity
 ```
 
-1. **Keyword Search**: SQLite LIKE queries. Fast, zero-config.
-2. **Gemini Embeddings** (optional): 3072-dim vectors for semantic similarity. Free tier = 1500 req/day.
-3. **Auto mode**: Keyword first. If < 3 results, falls back to vector search.
-4. **Tags**: Lightweight categorization. Normalized to lowercase.
+1. **Keyword Search** - SQLite LIKE queries. Fast, zero-config, always available.
+2. **Gemini Embeddings** (optional) - 3072-dim vectors for semantic similarity. Finds "authentication" when you searched "login issue".
+3. **Auto mode** - Keyword first. If < 3 results, falls back to vector search.
+4. **Tags** - Lightweight categorization. Normalized to lowercase.
 
 ## Import Existing Knowledge
 
-Already have notes, docs, or session logs? Import them directly:
+Already have notes, docs, or session logs? Import them:
 
 ```bash
-# Import a single file
+# Import a single markdown file
 npx mcp-simple-memory import CLAUDE.md --project my-app --tags setup
 
 # Import all .md files in a directory
 npx mcp-simple-memory import ./docs --tags documentation
 
-# Preview what would be imported (no changes)
+# Preview without saving
 npx mcp-simple-memory import ./notes --dry-run
 
-# With semantic search (auto-generates embeddings during import)
+# With embeddings (auto-generates during import)
 GEMINI_API_KEY=your-key npx mcp-simple-memory import memory.md
 ```
 
-The importer splits markdown files by headings (`#`, `##`, `###`) into individual memories. Each section becomes a searchable memory entry.
-
-### Options
+Files are split by headings (`#`, `##`, `###`) into individual memories.
 
 | Flag | Description |
 |------|-------------|
@@ -179,13 +182,10 @@ The importer splits markdown files by headings (`#`, `##`, `###`) into individua
 
 ## Database Stats
 
-Check what's in your memory:
-
 ```bash
 npx mcp-simple-memory stats
 ```
 
-Output:
 ```
 mcp-simple-memory stats
   DB: ~/.mcp-simple-memory/memory.db
@@ -199,27 +199,37 @@ mcp-simple-memory stats
     default: 12
 ```
 
-## Data Storage
-
-All data stays local:
-- Database: `~/.mcp-simple-memory/memory.db`
-- Override: set `MCP_MEMORY_DIR` environment variable
-
 ## Use with CLAUDE.md
 
-Add to your project's `CLAUDE.md` for automatic session memory:
+Add to your project's `CLAUDE.md` for automatic session continuity:
 
 ```markdown
 ## Session Memory
-- On session start: use `mem_search` to find recent session summaries
-- During work: save important decisions with `mem_save` (type: "decision")
-- On session end: save a summary with `mem_save` (type: "session_summary")
-- Tag memories for easy retrieval: `mem_save({ text: "...", tags: ["auth", "v2"] })`
+- On session start: `mem_search` for recent session summaries
+- During work: `mem_save` important decisions (type: "decision")
+- On session end: `mem_save` a summary (type: "session_summary")
 ```
 
-## Upgrade from 0.1.x
+## Data Storage
 
-Just update - the database schema migrates automatically. Your existing memories are preserved. New columns (`updated_at`, `updated_iso`) and the `tags` table are added on first run.
+All data stays local on your machine:
+- **Database**: `~/.mcp-simple-memory/memory.db`
+- **Override**: set `MCP_MEMORY_DIR` environment variable
+
+## Comparison with Other Memory MCPs
+
+| | mcp-simple-memory | Official Memory Server | Others (ChromaDB-based) |
+|---|---|---|---|
+| Setup | `npx` one-liner | Config required | Python + Docker + DB |
+| Storage | SQLite (WASM) | JSON file | External vector DB |
+| Search | Keyword + Vector | Graph traversal | Vector only |
+| Windows | Yes | Yes | Often broken |
+| Dependencies | 2 (sdk + sql.js) | Varies | Many |
+| Semantic search | Optional (Gemini free tier) | No | Required |
+
+## Upgrading
+
+Just update - the database schema migrates automatically. Existing memories are preserved.
 
 ## License
 

@@ -1,6 +1,6 @@
 {
   "name": "mcp-simple-memory",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Persistent memory for Claude Code via MCP. SQLite + optional semantic search. Zero native deps. Works on Windows/Mac/Linux.",
   "type": "module",
   "main": "dist/index.js",
@@ -15,15 +15,20 @@
   },
   "keywords": [
     "mcp",
+    "mcp-server",
     "claude",
     "claude-code",
     "memory",
-    "sqlite",
     "persistent-memory",
+    "sqlite",
     "model-context-protocol",
-    "ai-tools"
+    "ai-tools",
+    "semantic-search",
+    "embeddings",
+    "session-memory",
+    "knowledge-base"
   ],
-  "author": "",
+  "author": "ohsim713",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

@@ -208,7 +208,7 @@ function err(text: string) {
 function formatRows(rows: any[], header: string) {
   if (!rows.length) return ok(`${header}\n\n(no results)`);
   const lines = rows.map((r) => {
-    const preview = (r.content || "").substring(0, 150).replace(/\n/g, " ");
+    const preview = (r.content || "").substring(0, 200).replace(/\n/g, " ");
     const tags = r.tags?.length ? ` [${r.tags.join(", ")}]` : "";
     const updated = r.updated_iso ? ` (updated: ${r.updated_iso})` : "";
     return `#${r.id} | ${r.type} | ${r.project} | ${r.created_iso}${updated}\n  ${r.title || "(no title)"}${tags}\n  ${preview}`;
@@ -524,7 +524,7 @@ async function handleTags(args: Record<string, any>) {
 
 // ---- MCP Server -----------------------------------------------------------
 const server = new Server(
-  { name: "mcp-simple-memory", version: "0.3.0" },
+  { name: "mcp-simple-memory", version: "0.4.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -694,7 +694,7 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error(
-    `[mcp-simple-memory] v0.3.0 | DB: ${DB_PATH} | Embeddings: ${GEMINI_API_KEY ? "ON" : "OFF"}`
+    `[mcp-simple-memory] v0.4.0 | DB: ${DB_PATH} | Embeddings: ${GEMINI_API_KEY ? "ON" : "OFF"}`
   );
 }
 
