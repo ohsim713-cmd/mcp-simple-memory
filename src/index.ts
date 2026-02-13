@@ -524,7 +524,7 @@ async function handleTags(args: Record<string, any>) {
 
 // ---- MCP Server -----------------------------------------------------------
 const server = new Server(
-  { name: "mcp-simple-memory", version: "0.2.1" },
+  { name: "mcp-simple-memory", version: "0.3.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -694,7 +694,7 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error(
-    `[mcp-simple-memory] v0.2.1 | DB: ${DB_PATH} | Embeddings: ${GEMINI_API_KEY ? "ON" : "OFF"}`
+    `[mcp-simple-memory] v0.3.0 | DB: ${DB_PATH} | Embeddings: ${GEMINI_API_KEY ? "ON" : "OFF"}`
   );
 }
 

@@ -149,6 +149,56 @@ mem_search({ query: "authentication problem", tag: "bug" })
 3. **Auto mode**: Keyword first. If < 3 results, falls back to vector search.
 4. **Tags**: Lightweight categorization. Normalized to lowercase.
 
+## Import Existing Knowledge
+
+Already have notes, docs, or session logs? Import them directly:
+
+```bash
+# Import a single file
+npx mcp-simple-memory import CLAUDE.md --project my-app --tags setup
+
+# Import all .md files in a directory
+npx mcp-simple-memory import ./docs --tags documentation
+
+# Preview what would be imported (no changes)
+npx mcp-simple-memory import ./notes --dry-run
+
+# With semantic search (auto-generates embeddings during import)
+GEMINI_API_KEY=your-key npx mcp-simple-memory import memory.md
+```
+
+The importer splits markdown files by headings (`#`, `##`, `###`) into individual memories. Each section becomes a searchable memory entry.
+
+### Options
+
+| Flag | Description |
+|------|-------------|
+| `--project <name>` | Set project name (default: filename) |
+| `--tags <t1,t2>` | Add tags to all imported memories |
+| `--dry-run` | Preview without saving |
+
+## Database Stats
+
+Check what's in your memory:
+
+```bash
+npx mcp-simple-memory stats
+```
+
+Output:
+```
+mcp-simple-memory stats
+  DB: ~/.mcp-simple-memory/memory.db
+
+  Memories:   42
+  Embeddings: 42/42 (100%)
+  Tags:       15 unique
+
+  Projects:
+    my-app: 30
+    default: 12
+```
+
 ## Data Storage
 
 All data stays local:
