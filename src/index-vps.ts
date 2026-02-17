@@ -193,9 +193,64 @@ async function handleTags(args: Record<string, any>) {
   return ok(`# Tags (${data.tags.length})\n\n${lines.join("\n")}`);
 }
 
+// ---- VPS API Tool Handlers (GAS/Tweet/Analytics) --------------------------
+
+async function handleGas(args: Record<string, any>) {
+  const target = args.target;
+  if (!target) return err("target is required (sns / secretary / accounting)");
+
+  const body: Record<string, any> = { target, action: args.action || "list_sheets" };
+  if (args.sheet) body.sheet = args.sheet;
+  if (args.rows) body.rows = args.rows;
+  if (args.row !== undefined) body.row = args.row;
+  if (args.col !== undefined) body.col = args.col;
+  if (args.value !== undefined) body.value = args.value;
+  if (args.headers) body.headers = args.headers;
+  if (args.tab_color) body.tab_color = args.tab_color;
+  if (args.widths) body.widths = args.widths;
+  if (args.color) body.color = args.color;
+  if (args.limit !== undefined) body.limit = args.limit;
+
+  const data = await apiPost("/gas", body);
+  // GASのレスポンスはresult文字列として返ってくる
+  const result = typeof data.result === "string" ? data.result : JSON.stringify(data.result, null, 2);
+  return ok(`GAS ${target}/${body.action}:\n${result}`);
+}
+
+async function handleTweet(args: Record<string, any>) {
+  const account = args.account;
+  const text = args.text;
+  if (!account) return err("account is required (mic_chat / ms_stripchat / racco_st / tt_liver / litz_grp)");
+  if (!text) return err("text is required");
+
+  const body: Record<string, any> = { account, text };
+  if (args.dry_run) body.dry_run = true;
+
+  const data = await apiPost("/tweet", body);
+  const result = typeof data.result === "string" ? data.result : JSON.stringify(data, null, 2);
+  if (args.dry_run) {
+    return ok(`[DRY RUN] @${account}:\n${text}\n\n${result}`);
+  }
+  return ok(`Tweeted @${account}:\n${text}\n\n${result}`);
+}
+
+async function handleAnalytics(args: Record<string, any>) {
+  const params: Record<string, string> = {};
+  if (args.account) params.account = args.account;
+  if (args.top) params.top = String(args.top);
+
+  const data = await apiGet("/analytics", params);
+  return ok(JSON.stringify(data, null, 2));
+}
+
+async function handleAccounts(args: Record<string, any>) {
+  const data = await apiGet("/accounts");
+  return ok(JSON.stringify(data, null, 2));
+}
+
 // ---- MCP Server -----------------------------------------------------------
 const server = new Server(
-  { name: "mcp-simple-memory", version: "0.5.0-vps" },
+  { name: "mcp-simple-memory", version: "0.6.0-vps" },
   { capabilities: { tools: {} } }
 );
 
@@ -294,6 +349,61 @@ const tools = [
       },
     },
   },
+  // ---- VPS API Tools ----
+  {
+    name: "gas",
+    description: "Operate Google Spreadsheets via GAS. target: sns/secretary/accounting. actions: list_sheets, get_info, get_rows, bulk_append, bulk_prepend, update_cell, init_sheet, delete_sheet, clear_sheet, format_stock, set_tab_color",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        target: { type: "string", description: "Target GAS: sns / secretary / accounting" },
+        action: { type: "string", description: "GAS action (default: list_sheets)" },
+        sheet: { type: "string", description: "Sheet name" },
+        rows: { type: "array", items: { type: "array", items: { type: "string" } }, description: "Rows to append/prepend" },
+        row: { type: "number", description: "Row number (for update_cell)" },
+        col: { type: "number", description: "Column number (for update_cell)" },
+        value: { type: "string", description: "Cell value (for update_cell)" },
+        headers: { type: "array", items: { type: "string" }, description: "Headers (for init_sheet)" },
+        tab_color: { type: "string", description: "Tab color hex (for init_sheet)" },
+        widths: { type: "array", items: { type: "number" }, description: "Column widths (for init_sheet)" },
+        color: { type: "string", description: "Color hex (for set_tab_color)" },
+        limit: { type: "number", description: "Row limit (for get_rows)" },
+      },
+      required: ["target"],
+    },
+  },
+  {
+    name: "tweet",
+    description: "Post a tweet via VPS API. Supports dry_run for preview.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        account: { type: "string", description: "Twitter account: mic_chat / ms_stripchat / racco_st / tt_liver / litz_grp" },
+        text: { type: "string", description: "Tweet text" },
+        dry_run: { type: "boolean", description: "Preview only, don't actually post" },
+      },
+      required: ["account", "text"],
+    },
+  },
+  {
+    name: "analytics",
+    description: "Get Twitter analytics data. Optionally filter by account or get top posts.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        account: { type: "string", description: "Filter by account" },
+        top: { type: "number", description: "Get top N posts" },
+      },
+    },
+  },
+  {
+    name: "accounts",
+    description: "List all configured SNS accounts.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
 ];
 
 const handlers: Record<string, (args: any) => Promise<any>> = {
@@ -304,6 +414,10 @@ const handlers: Record<string, (args: any) => Promise<any>> = {
   mem_update: handleUpdate,
   mem_delete: handleDelete,
   mem_tags: handleTags,
+  gas: handleGas,
+  tweet: handleTweet,
+  analytics: handleAnalytics,
+  accounts: handleAccounts,
 };
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
